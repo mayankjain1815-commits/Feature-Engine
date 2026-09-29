@@ -38,6 +38,11 @@ jobs:
     if: >
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'runcodespeed')
+    # Secrets cannot be referenced directly in a step `if:` condition, so the
+    # token is exposed to the steps as a job-level environment variable and the
+    # conditions below read `env.CODSPEED_TOKEN` instead.
+    env:
+      CODSPEED_TOKEN: ${{ secrets.CODSPEED_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,8 +57,23 @@ jobs:
           pip install -e .
           pip install pytest pytest-codspeed
 
-      - name: Run benchmarks
+      - name: Run benchmarks (CodSpeed upload)
+        # Publishing results requires this repository to be registered with
+        # CodSpeed. It is not: the CodSpeed API returns 404 for it, and the OIDC
+        # path used previously therefore failed at upload with
+        # "Failed to retrieve upload data: 401 Unauthorized".
+        #
+        # Add a CODSPEED_TOKEN repository secret to publish results. Until then
+        # the fallback step below runs the same benchmarks instrumented but
+        # un-published, so a broken or badly regressed benchmark is still caught
+        # in CI.
+        if: env.CODSPEED_TOKEN != ''
         uses: CodSpeedHQ/action@v5
         with:
           mode: simulation
+          token: ${{ env.CODSPEED_TOKEN }}
           run: pytest benchmarks/ --codspeed
+
+      - name: Run benchmarks (instrumented, no upload)
+        if: env.CODSPEED_TOKEN == ''
+        run: pytest benchmarks/ --codspeed
