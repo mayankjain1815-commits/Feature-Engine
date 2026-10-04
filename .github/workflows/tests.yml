@@ -33,4 +33,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v --no-cov 2>&1 | tail -5
+          pytest tests/ -v 2>&1 | tail -5
