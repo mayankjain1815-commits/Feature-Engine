@@ -33,4 +33,7 @@ jobs:
 
       - name: Run tests
         run: |
+          # Without pipefail the exit status of pytest is discarded by `tail`, so a
+          # failing suite is reported as a passing job.
+          set -o pipefail
           pytest tests/ -v 2>&1 | tail -5
