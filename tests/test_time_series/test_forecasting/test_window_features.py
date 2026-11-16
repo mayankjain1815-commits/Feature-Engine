@@ -595,3 +595,12 @@ def test_transform_x_y(df_time):
     assert len(Xt) == len(yt)
     assert len(y) != len(yt)
     assert (Xt.index == yt.index).all()
+
+
+def test_min_periods_is_forwarded_to_rolling():
+    X = pd.DataFrame({"a": [1, 2, 3, 4, 5]})
+    transformer = WindowFeatures(window=3, min_periods=1, functions="mean")
+    X_tr = transformer.fit_transform(X)
+
+    expected = pd.Series([np.nan, 1.0, 1.5, 2.0, 3.0], name="a_window_3_mean")
+    pd.testing.assert_series_equal(X_tr["a_window_3_mean"], expected)
